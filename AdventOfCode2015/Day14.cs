@@ -10,7 +10,6 @@ namespace AdventOfCode2015
 
     internal class Reindeer
     {
-        public string Name { get; set; }
         public int Speed { get; set; }
         public int Time { get; set; }
         public int Rest { get; set; }
@@ -46,7 +45,6 @@ namespace AdventOfCode2015
                 MatchCollection mx = rx.Matches(line);
                 reindeer.Add(new Reindeer
                 {
-                    Name = mx[0].Groups["name"].Value,
                     Speed = int.Parse(mx[0].Groups["speed"].Value),
                     Time = int.Parse(mx[0].Groups["time"].Value),
                     Rest = int.Parse(mx[0].Groups["rest"].Value),
