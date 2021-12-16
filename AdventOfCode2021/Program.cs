@@ -15,5 +15,6 @@ class Program
         Day11.Run();
         Day12.Run();
         Day13.Run();
+        Day14.Run();
     }
 }
