@@ -2,9 +2,10 @@
 {
     internal class Program
     {
-        static void Main(string[] args)
+        private static void Main()
         {
             Day1.Run();
+            Day2.Run();
         }
     }
 }
