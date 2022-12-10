@@ -1020,7 +1020,7 @@ namespace AdventOfCode2022
             foreach (string ip in Data)
             {
                 Match mx = rx.Match(ip);
-                if (mx.Success && mx.Groups.Count == 4 + 1)
+                if (mx is {Success: true, Groups.Count: 4 + 1})
                 {
                     sections[0] = int.Parse(mx.Groups[1].Value);
                     sections[1] = int.Parse(mx.Groups[2].Value);
