@@ -1,21 +1,8 @@
 ﻿
-using System.Data;
-
 namespace AdventOfCode2023
 {
     internal class Day1
     {
-        private static readonly string[] Datax =
-        {
-            "two1nine",
-            "eightwothree",
-            "abcone2threexyz",
-            "xtwone3four",
-            "4nineeightseven2",
-            "zoneight234",
-            "7pqrstsixteen"
-        };
-
         private static readonly string[] Data =
         {
             "gtlbhbjgkrb5sixfivefivetwosix",
@@ -1020,7 +1007,7 @@ namespace AdventOfCode2023
             "eightrtsjszc2"
         };
 
-        private static readonly Dictionary<string, string> Map = new Dictionary<string, string>()
+        private static readonly Dictionary<string, string> Map = new ()
         {
             {"0", "1"},
             {"1", "1"},
@@ -1043,7 +1030,7 @@ namespace AdventOfCode2023
             {"nine", "9"}
         };
 
-        private static int Calculate(string strIn, bool blnTextDigit, bool blnLast) => int.Parse(Map[Map.Keys.Where(s => s.Length == 1 || blnTextDigit).Select(s => new { s, idx = (blnLast ? new string(strIn.Reverse().ToArray()) : strIn)!.IndexOf((blnLast ? new string(s.Reverse().ToArray()) : s)!, StringComparison.InvariantCulture) }).Where(t => t.idx > -1).OrderBy(t => t.idx).First().s]);
+        private static int Calculate(string strIn, bool blnTextDigit, bool blnLast) => int.Parse(Map[Map.Keys.Where(s => s.Length == 1 || blnTextDigit).Select(s => new { s, idx = (blnLast ? new string(strIn.Reverse().ToArray()) : strIn).IndexOf(blnLast ? new string(s.Reverse().ToArray()) : s, StringComparison.InvariantCulture) }).Where(t => t.idx > -1).OrderBy(t => t.idx).First().s]);
 
         public static void Run()
         {
