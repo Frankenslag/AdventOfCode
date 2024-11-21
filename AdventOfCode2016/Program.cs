@@ -1,0 +1,11 @@
+﻿namespace AdventOfCode2016
+{
+    internal class Program
+    {
+        private static void Main()
+        {
+            //Day1.Run();
+            Day2.Run();
+        }
+    }
+}
