@@ -4,8 +4,8 @@ namespace AdventOfCode2016
     internal class Dayn
     {
         private static readonly string[] Data =
-        {
-        };
+        [
+        ];
 
 
         public static void Run()
