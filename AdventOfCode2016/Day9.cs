@@ -189,56 +189,52 @@ namespace AdventOfCode2016
             "IKBZLILU"
         ];
 
-        private static readonly string[] Data1 =
-        [
-            "ADVENT",
-            "A(1x5)BC",
-            "(3x3)XYZ",
-            "A(2x2)BCD(2x2)EFG",
-            "(6x1)(1x3)A",
-            "X(8x2)(3x3)ABCY",
-        ];
-
-        public static void Run()
+        private static long DecompressedLength(string strIn, bool v2)
         {
-            string strIn = Regex.Replace(Data.Aggregate(string.Empty, (c, n) => c + n), @"\s", "");
-            StringBuilder strOut = new();
-
-            int i = 0;
-
-            while (i < strIn.Length)
+            static string Decompress(string strIn, ref long cumLength, bool v2)
             {
-                if (strIn[i] == '(')
+                string retval;
+
+                Regex rx = new(@"\(([0-9]*)x([0-9]*)\)");
+
+                Match mx = rx.Match(strIn);
+
+                if (mx.Success)
                 {
-                    string marker = strIn.Substring(i + 1, strIn.IndexOf(')', i + 1) - i);
-
-                    i += marker.Length + 1;
-
-                    Match mx = Regex.Match(marker, @"([0-9]*)x([0-9]*)");
-
-                    if (mx.Success)
-                    {
-                         int length = int.Parse(mx.Groups[1].Value);
-                         int repeat = int.Parse(mx.Groups[2].Value);
-
-                         for (int rpt = 0; rpt < repeat; rpt++)
-                         {
-                             strOut.Append(strIn.Substring(i, length));
-                         }
-
-                         i += length;
-                    }
+                    int length = int.Parse(mx.Groups[1].Value);
+                    int repeat = int.Parse(mx.Groups[2].Value);
+                    retval = strIn[(mx.Index + mx.Length + length)..];
+                    cumLength += mx.Index + (v2 ? DecompressedLength(strIn.Substring(mx.Index + mx.Length, length), v2) : length) * repeat;
                 }
                 else
                 {
-                    strOut.Append(strIn[i++]);
+                    cumLength += strIn.Length;
+                    retval = string.Empty;
                 }
+
+                return retval;
             }
 
-            Console.WriteLine(strOut.Length);
+            long retval = 0;
 
-            Console.WriteLine($"Day 1 Part 1 Answer is calibration value {1}.");
-            Console.WriteLine($"Day 1 Part 2 Answer is calibration value {2}.");
+            string compressedString = new(strIn);
+
+            while (compressedString.Length > 0)
+            {
+                compressedString = Decompress(compressedString, ref retval, v2);
+            }
+
+            return retval;
+        }
+
+        public static void Run()
+        {
+            string compressedData = Regex.Replace(Data.Aggregate(new StringBuilder(), (c, n) => c.Append(n), sb => sb.ToString()), @"\s", "");
+
+            for (int run = 0; run < 2; run++)
+            {
+                Console.WriteLine($"Day 3 Part {run + 1} Answer is Length {DecompressedLength(compressedData, run == 1)}.");
+            }
         }
     }
 }
