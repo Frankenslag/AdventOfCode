@@ -7,7 +7,6 @@ namespace AdventOfCode2016
         [
         ];
 
-
         public static void Run()
         {
             Console.WriteLine($"Day 1 Part 1 Answer is calibration value {1}.");
