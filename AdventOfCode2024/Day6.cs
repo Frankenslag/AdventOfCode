@@ -176,7 +176,6 @@ namespace AdventOfCode2024
                 if (run == 1)
                 {
                     paradoxCandidates = mapData.Select((line, row) => line.Select((c, col) => (c, col)).Where(c => c.c == '.').Select(p => (p.col, row))).SelectMany(p => p).ToList();
-                    //paradoxCandidates = [(3, 6)];
                 }
 
                 for (int i = 0; i < (run == 0 ? 1 : paradoxCandidates.Count); i++)
