@@ -7,15 +7,15 @@ namespace AdventOfCode2024
         [
         ];
 
-
         private static readonly string[] Data1 =
         [
         ];
 
-        public static void Run()
+        private static void Execute(string[] inputdata)
         {
-            Console.WriteLine($"Day 1 Part 1 Answer is calibration value {1}.");
-            Console.WriteLine($"Day 1 Part 2 Answer is calibration value {2}.");
+            Console.WriteLine($"Day n Part 1 Answer is calibration value {1}.");
         }
+
+        public static void Run() => Execute(Data);
     }
 }
