@@ -25,7 +25,7 @@
             //Day19.Run();
             //Day20.Run();
             //Day21.Run();
-            Day22.Run();
+            //Day22.Run();
         }
     }
 }

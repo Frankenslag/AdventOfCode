@@ -1,12 +1,11 @@
 ﻿
-using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
 
 namespace AdventOfCode2016
 {
     internal class Day10
     {
-        private static readonly string[] Data =
+        private static readonly string[] DataReal =
         [
             "bot 152 gives low to bot 155 and high to bot 70",
             "bot 166 gives low to bot 27 and high to bot 8",
@@ -241,34 +240,96 @@ namespace AdventOfCode2016
             "bot 94 gives low to bot 23 and high to bot 19"
         ];
 
+        private enum TargetType
+        {
+            Bot = 0,
+            Bin = 1
+        }
 
-        private static readonly string[] Data1 =
-        [
-            "value 5 goes to bot 2",
-            "bot 2 gives low to bot 1 and high to bot 0",
-            "value 3 goes to bot 1",
-            "bot 1 gives low to output 1 and high to bot 0",
-            "bot 0 gives low to output 2 and high to output 0",
-            "value 2 goes to bot 2"
-        ];
+        private record Instruction(int SourceBot, TargetType LowTargetType, int LowTarget, TargetType HighTargetType, int HighTarget);
+
+        private static readonly List<(int bot, int val)> InitialVals = [];
+        private static readonly List<Instruction> Instructions = [];
+        private static readonly Dictionary<int, List<int>> Bots = [];
+        private static readonly Dictionary<int, List<int>> Bins = [];
+        private static int _resultBot = -1;
+
+        private static void AddChipToBot(int botId, int val)
+        {
+            if (!Bots.ContainsKey(botId))
+            {
+                Bots.Add(botId, []);
+            }
+
+            List<int> chips = Bots[botId];
+
+            chips.Add(val);
+
+            if (chips.Count > 1)
+            {
+                if (chips.Contains(61) && chips.Contains(17))
+                {
+                    _resultBot = botId;
+                }
+
+                Instruction? instruction = Instructions.FirstOrDefault(i => i.SourceBot == botId);
+
+                if (instruction != null)
+                {
+                    if (instruction.LowTargetType == TargetType.Bot)
+                    {
+                        AddChipToBot(instruction.LowTarget, chips[chips[1] > chips[0] ? 0 : 1]);
+                    }
+                    else
+                    {
+                        if (!Bins.ContainsKey(instruction.LowTarget))
+                        {
+                            Bins.Add(instruction.LowTarget, []);
+                        }
+
+                        Bins[instruction.LowTarget].Add(chips[chips[1] > chips[0] ? 0 : 1]);
+                    }
+
+                    if (instruction.HighTargetType == TargetType.Bot)
+                    {
+                        AddChipToBot(instruction.HighTarget, chips[chips[1] > chips[0] ? 1 : 0]);
+                    }
+                    else
+                    {
+                        if (!Bins.ContainsKey(instruction.HighTarget))
+                        {
+                            Bins.Add(instruction.HighTarget, []);
+                        }
+
+                        Bins[instruction.HighTarget].Add(chips[chips[1] > chips[0] ? 1 : 0]);
+                    }
+                }
+
+                chips.Clear();
+            }
+        }
 
         public static void Run()
         {
             Regex rx = new("value (?<value>[0-9]*) goes to bot (?<bot>[0-9]*)|bot (?<bot>[0-9]*) gives low to (?<lowtype>bot|output) (?<lowidx>[0-9]*) and high to (?<hightype>bot|output) (?<highidx>[0-9]*)");
 
-            foreach (string strLine in Data1)
+            string[] data = DataReal;
+
+            foreach (string strLine in data)
             {
                 Match mx = rx.Match(strLine);
 
                 if (mx.Success)
                 {
-                    if (mx.Value.StartsWith(""))
-                    {
+                    int bot = int.Parse(mx.Groups["bot"].Value);
 
+                    if (mx.Value.StartsWith("value"))
+                    {
+                        InitialVals.Add((bot, int.Parse(mx.Groups["value"].Value)));
                     }
                     else if (mx.Value.StartsWith("bot"))
                     {
-
+                        Instructions.Add(new Instruction(bot, mx.Groups["lowtype"].Value == "bot" ? TargetType.Bot : TargetType.Bin, int.Parse(mx.Groups["lowidx"].Value), mx.Groups["hightype"].Value == "bot" ? TargetType.Bot : TargetType.Bin, int.Parse(mx.Groups["highidx"].Value)));
                     }
                     else
                         throw new InvalidOperationException(strLine);
@@ -277,8 +338,14 @@ namespace AdventOfCode2016
                     throw new InvalidOperationException(strLine);
             }
 
-            Console.WriteLine($"Day 1 Part 1 Answer is calibration value {1}.");
-            Console.WriteLine($"Day 1 Part 2 Answer is calibration value {2}.");
+            foreach ((int bot, int val) v in InitialVals)
+            {
+                AddChipToBot(v.bot, v.val);
+            }
+
+
+            Console.WriteLine($"Day 10 Part 1 Answer is bot {_resultBot}.");
+            Console.WriteLine($"Day 10 Part 2 Answer is {Bins.OrderBy(kvp => kvp.Key).Take(3).Aggregate(1, (curr, next) => curr * next.Value[0])}.");
         }
     }
 }
