@@ -1,18 +1,12 @@
 ﻿
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Data;
-using System.Net.Http.Headers;
-using System.Reflection.Metadata;
-using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
 namespace AdventOfCode2023
 {
     internal class Day5
     {
-        private static readonly string[] Datax =
-        {
+        private static readonly string[] Data =
+        [
             "seeds: 4088478806 114805397 289354458 164506173 1415635989 166087295 1652880954 340945548 3561206012 483360452 35205517 252097746 1117825174 279314434 3227452369 145640027 2160384960 149488635 2637152665 236791935",
             "",
             "seed-to-soil map:",
@@ -222,60 +216,83 @@ namespace AdventOfCode2023
             "2182145666 3596258530 28331060",
             "2965556648 2811971059 154696004",
             "3236840747 3205935028 252772539"
-        };
+        ];
 
-        private static readonly string[] Data =
-        {
-            "seeds: 79 14 55 13",
-            "",
-            "seed-to-soil map:",
-            "50 98 2",
-            "52 50 48",
-            "",
-            "soil-to-fertilizer map:",
-            "0 15 37",
-            "37 52 2",
-            "39 0 15",
-            "",
-            "fertilizer-to-water map:",
-            "49 53 8",
-            "0 11 42",
-            "42 0 7",
-            "57 7 4",
-            "",
-            "water-to-light map:",
-            "88 18 7",
-            "18 25 70",
-            "",
-            "light-to-temperature map:",
-            "45 77 23",
-            "81 45 19",
-            "68 64 13",
-            "",
-            "temperature-to-humidity map:",
-            "0 69 1",
-            "1 0 69",
-            "",
-            "humidity-to-location map:",
-            "60 56 37",
-            "56 93 4"
-        };
+        private record Transform(long First, long Last, long Offset);
 
+        private record Range(long First, long Last);
 
         public static void Run()
         {
             Regex rxSeeds = new (@"seeds:\s*(.+)");
-            Regex rxMaps = new(@"(\w+-to-\w+) map:");
+            Regex rxMapName = new(@"(\w+-to-\w+) map:");
             Regex rxValues = new(@"(\d+)");
-            List<long> seeds = new();
+            List<long> rawSeeds = [];
 
-            Dictionary<string, List<(long from, long to, long length)>> Maps = new();
+            Dictionary<string, List<Transform>> maps = [];
 
-            long DoMapping(string map, long input)
+            List<(Range range, Transform transform)> SplitRange(Range seedRange, List<Transform> transforms)
             {
-                var mapping = Maps[map].FirstOrDefault(m => input >= m.from && input - m.from < m.length);
+                Range? remainingRange = seedRange;
 
-                return mapping == default ? input : input - mapping.from + mapping.to;
+                List<(Range range, Transform transform)> retval = [];
+
+                if (seedRange.First == 6760937)
+                {
+
+                }
+
+                foreach (Transform transform in transforms.OrderBy(t => t.First))
+                {
+                    // if the test range overlaps the transform then next item
+                    if (remainingRange != null && remainingRange.First <= transform.Last && remainingRange.Last >= transform.First)
+                    {
+                        // if the test range start is before the transform then split
+                        if (remainingRange.First < transform.First)
+                        {
+                            retval.Add((remainingRange with {Last = transform.First - 1}, new Transform(-1, -1, -1)));
+                            remainingRange = remainingRange with {First = transform.First};
+                        }
+
+                        // if the test range end is beyond the transform then split
+                        if (remainingRange.Last > transform.Last)
+                        {
+                            retval.Add((remainingRange with {Last = transform.Last}, transform));
+                            remainingRange = remainingRange with {First = transform.Last + 1};
+                        }
+                        else
+                        {
+                            retval.Add((new Range(remainingRange.First, remainingRange.Last), transform));
+                            remainingRange = null;
+                        }
+                    }
+                }
+
+                if (remainingRange != null)
+                {
+                    retval.Add((remainingRange, new Transform(-1, -1, -1)));
+                }
+
+                return retval;
+            }
+
+            List<Range> TransformRange(IEnumerable<Range> seedRanges)
+            {
+                List<Range> transformedRanges = new(seedRanges);
+
+                foreach (List<Transform> map in maps.Values)
+                {
+                    List<Range> nextRange = [];
+
+                    foreach (var inputRange in transformedRanges)
+                    {
+                        nextRange.AddRange(SplitRange(inputRange, map).Select(splitRange => splitRange.transform.Offset == -1 ? splitRange.range : new Range(splitRange.range.First + splitRange.transform.Offset, splitRange.range.Last + splitRange.transform.Offset)));
+                    }
+
+                    transformedRanges = new List<Range>(nextRange);
+                }
+
+                return transformedRanges;
             }
 
             int lineNo = 0;
@@ -290,12 +307,12 @@ namespace AdventOfCode2023
                         if (mxSeeds.Success)
                         {
                             lineNo++;
-                            seeds = rxValues.Matches(mxSeeds.Groups[1].Value).Select(m => long.Parse(m.Value)).ToList();
+                            rawSeeds = rxValues.Matches(mxSeeds.Groups[1].Value).Select(m => long.Parse(m.Value)).ToList();
                         }
                     }
                     else
                     {
-                        Match mxMaps = rxMaps.Match(Data[lineNo++]);
+                        Match mxMaps = rxMapName.Match(Data[lineNo++]);
 
                         if (mxMaps.Success)
                         {
@@ -305,44 +322,18 @@ namespace AdventOfCode2023
 
                                 if (valueMatches.Count == 3)
                                 {
-                                    if (!Maps.ContainsKey(mxMaps.Groups[1].Value))
+                                    if (!maps.ContainsKey(mxMaps.Groups[1].Value))
                                     {
-                                        Maps.Add(mxMaps.Groups[1].Value, new List<(long from, long to, long length)>());
+                                        maps.Add(mxMaps.Groups[1].Value, []);
                                     }
 
-                                    Maps[mxMaps.Groups[1].Value].Add((long.Parse(valueMatches[1].Value),
-                                        long.Parse(valueMatches[0].Value), long.Parse(valueMatches[2].Value)));
+                                    long srcStart = long.Parse(valueMatches[1].Value);
+                                    long dstStart  = long.Parse(valueMatches[0].Value);
+                                    long length = long.Parse(valueMatches[2].Value);
+
+                                    maps[mxMaps.Groups[1].Value].Add(new Transform(srcStart, srcStart + length - 1, dstStart - srcStart));
                                 }
                             }
-
-                            // let's fill in the gaps in the mappings.
-                            Maps[mxMaps.Groups[1].Value] = Maps[mxMaps.Groups[1].Value].OrderBy(m => m.from)
-                                .Aggregate(new List<(long from, long to, long length)>(), (c, n) =>
-                                    {
-                                        if (c.Count == 0)
-                                        {
-                                            if (n.from != 0)
-                                            {
-                                                c.Add((0L, 0L, n.from));
-                                            }
-                                        }
-                                        else
-                                        {
-                                            var last = c.Last();
-                                            if (n.from > last.from + last.length)
-                                            {
-                                                c.Add((last.from + last.length, last.to + last.length, last.length));
-                                            }
-                                        }
-
-                                        c.Add(n);
-
-                                        return c;
-                                    }
-                            );
-
-                            var last = Maps[mxMaps.Groups[1].Value].Last();
-                            Maps[mxMaps.Groups[1].Value].Add((last.from + last.length, last.from + last.length, long.MaxValue - (last.from + last.length)));
                         }
                     }
                 }
@@ -350,21 +341,8 @@ namespace AdventOfCode2023
                 lineNo++;
             }
 
-            Console.WriteLine($"Day 5 Part 1 Answer is location {seeds.Min(s => new[] { "seed-to-soil", "soil-to-fertilizer", "fertilizer-to-water", "water-to-light", "light-to-temperature", "temperature-to-humidity", "humidity-to-location" }.Aggregate(s, (current, mapping) => DoMapping(mapping, current)))}.");
-
-            List <(long from, long to, long length)> seedRanges = seeds.Chunk(2).Select(l => (l[0], l[0], l[1])).ToList();
-
-            List<(long from, long to, long length)> mappedSeedRanges = new();
-
-            foreach (var mapping in new[] {"seed-to-soil", "soil-to-fertilizer", "fertilizer-to-water", "water-to-light", "light-to-temperature", "temperature-to-humidity", "humidity-to-location"}.Select(m => Maps[m]))
-            {
-                foreach (var seedRange in seedRanges)
-                {
-
-                }
-            }
-
-            Console.WriteLine($"Day 5 Part 2 Answer is location {seeds.Min(s => new[] { "seed-to-soil", "soil-to-fertilizer", "fertilizer-to-water", "water-to-light", "light-to-temperature", "temperature-to-humidity", "humidity-to-location" }.Aggregate(s, (current, mapping) => DoMapping(mapping, current)))}.");
+            Console.WriteLine($"Day 5 Part 1 Answer is {TransformRange(rawSeeds.Select(s => new Range(s, s))).Min(s => s.First)}.");
+            Console.WriteLine($"Day 5 Part 2 Answer is {TransformRange(rawSeeds.Chunk(2).Select(s => new Range(s[0], s[0] + s[1] - 1))).Min(s => s.First)}.");
         }
     }
 }
